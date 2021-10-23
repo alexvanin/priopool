@@ -1,54 +1,51 @@
-package main
+package priopool
 
-// From https://golang.org/src/container/heap/example_pq_test.go
+// Priority pool based on implementation example from heap package.
+// Priority queue itself is not thread safe.
+// See https://cs.opensource.google/go/go/+/refs/tags/go1.17.2:src/container/heap/example_pq_test.go
 
 import (
 	"container/heap"
 )
 
-// An Item is something we manage in a priority queue.
-type Item struct {
-	value    func() // The value of the item; arbitrary.
-	priority int    // The priority of the item in the queue.
-	// The index is needed by update and is maintained by the heap.Interface methods.
-	index int // The index of the item in the heap.
+type priorityQueueTask struct {
+	value    func()
+	priority int
+	index    int // the index is needed by update and is maintained by the heap.Interface methods
 }
 
-// A PriorityQueue implements heap.Interface and holds Items.
-type PriorityQueue []*Item
+type priorityQueue []*priorityQueueTask
 
-func (pq PriorityQueue) Len() int { return len(pq) }
+func (pq priorityQueue) Len() int { return len(pq) }
 
-func (pq PriorityQueue) Less(i, j int) bool {
-	// We want Pop to give us the highest, not lowest, priority so we use greater than here.
+func (pq priorityQueue) Less(i, j int) bool {
 	return pq[i].priority > pq[j].priority
 }
 
-func (pq PriorityQueue) Swap(i, j int) {
+func (pq priorityQueue) Swap(i, j int) {
 	pq[i], pq[j] = pq[j], pq[i]
 	pq[i].index = i
 	pq[j].index = j
 }
 
-func (pq *PriorityQueue) Push(x interface{}) {
+func (pq *priorityQueue) Push(x interface{}) {
 	n := len(*pq)
-	item := x.(*Item)
+	item := x.(*priorityQueueTask)
 	item.index = n
 	*pq = append(*pq, item)
 }
 
-func (pq *PriorityQueue) Pop() interface{} {
+func (pq *priorityQueue) Pop() interface{} {
 	old := *pq
 	n := len(old)
 	item := old[n-1]
-	old[n-1] = nil  // avoid memory leak
-	item.index = -1 // for safety
+	old[n-1] = nil
+	item.index = -1
 	*pq = old[0 : n-1]
 	return item
 }
 
-// update modifies the priority and value of an Item in the queue.
-func (pq *PriorityQueue) update(item *Item, value func(), priority int) {
+func (pq *priorityQueue) update(item *priorityQueueTask, value func(), priority int) {
 	item.value = value
 	item.priority = priority
 	heap.Fix(pq, item.index)
