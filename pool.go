@@ -1,6 +1,7 @@
 package priopool
 
 import (
+	"container/heap"
 	"errors"
 	"fmt"
 	"sync"
@@ -48,9 +49,9 @@ func New(poolCapacity, queueCapacity int) (*PriorityPool, error) {
 
 	switch {
 	case queueCapacity >= 0:
-		queue = make(priorityQueue, 0, queueCapacity)
+		queue.tasks = make([]*priorityQueueTask, 0, queueCapacity)
 	case queueCapacity < 0:
-		queue = make(priorityQueue, 0, defaultQueueCapacity)
+		queue.tasks = make([]*priorityQueueTask, 0, defaultQueueCapacity)
 	}
 
 	return &PriorityPool{
@@ -81,7 +82,7 @@ func (p *PriorityPool) Submit(priority uint32, task func()) error {
 				p.mu.Unlock()
 				return
 			}
-			queueF := p.queue.Pop()
+			queueF := heap.Pop(&p.queue)
 			p.mu.Unlock()
 
 			queueF.(*priorityQueueTask).value()
@@ -95,15 +96,13 @@ func (p *PriorityPool) Submit(priority uint32, task func()) error {
 		return fmt.Errorf("pool submit: %w", err)
 	}
 
-	ln := p.queue.Len()
-	if p.limit >= 0 && ln >= p.limit {
+	if p.limit >= 0 && p.queue.Len() >= p.limit {
 		return ErrQueueOverload
 	}
 
-	p.queue.Push(&priorityQueueTask{
+	heap.Push(&p.queue, &priorityQueueTask{
 		value:    task,
 		priority: int(priority),
-		index:    ln,
 	})
 
 	return nil
