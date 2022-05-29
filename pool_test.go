@@ -94,7 +94,8 @@ func TestPriorityPool_Submit(t *testing.T) {
 		wg.Add(poolCap)
 
 		for i := 0; i < poolCap; i++ {
-			err = p.Submit(lowPriority, taskGenerator(i, nil, wg))
+			id := i
+			err = p.Submit(lowPriority, taskGenerator(id, nil, wg))
 			require.NoError(t, err)
 		}
 
@@ -114,7 +115,8 @@ func TestPriorityPool_Submit(t *testing.T) {
 		wg.Add(n)
 
 		for i := 0; i < n; i++ {
-			err = p.Submit(lowPriority, taskGenerator(i, nil, wg))
+			id := i
+			err = p.Submit(lowPriority, taskGenerator(id, nil, wg))
 			require.NoError(t, err)
 		}
 
