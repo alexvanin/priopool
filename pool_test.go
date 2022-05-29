@@ -1,6 +1,7 @@
 package priopool_test
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -121,6 +122,30 @@ func TestPriorityPool_Submit(t *testing.T) {
 		}
 
 		wg.Wait()
+	})
+
+	t.Run("non-priority order", func(t *testing.T) {
+		const n = 5
+
+		p, err := priopool.New(1, -1)
+		require.NoError(t, err)
+
+		wg := new(sync.WaitGroup)
+		wg.Add(n)
+		result := new(syncList)
+
+		for i := 0; i < n; i++ {
+			id := i
+			err = p.Submit(lowPriority, taskGenerator(id, result, wg))
+			require.NoError(t, err)
+		}
+
+		wg.Wait()
+
+		fmt.Println(result.list)
+		for i := 0; i < n; i++ {
+			require.Equal(t, i, result.list[i])
+		}
 	})
 }
 
